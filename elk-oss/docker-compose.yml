@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.10.1
+    container_name: elasticsearch
+    environment:
+      - "discovery.type=single-node"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana-oss:7.10.1
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS="http://elasticsearch:9200/"
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash-oss:7.10.1
+    container_name: logstash
+    ports:
+      - "30002:30002"
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./configs/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./configs/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf

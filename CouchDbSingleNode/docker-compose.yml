@@ -1,0 +1,24 @@
+# после запуска зайти в http://localhost:5989/_utils и настроить работу в режиме одной ноды
+
+version: "3.9"
+services:
+  node1:
+    image: couchdb:latest
+    environment:
+      - COUCHDB_SECRET="couchdb-cluster-123!"
+      - ERL_FLAGS=-setcookie "brumbrum"
+      - NODENAME="node1.couchdb.local"
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
+    ports:
+      - "5989:5984"
+    networks:
+      cluster:
+        aliases:
+          - node1.couchdb.local
+    volumes:
+      - ./nodes/data1:/opt/couchdb/data
+      - ./nodes/config1:/opt/couchdb/etc/local.d
+
+networks:
+  cluster:

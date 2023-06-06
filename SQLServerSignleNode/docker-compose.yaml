@@ -1,0 +1,18 @@
+version: '2'
+
+services:
+  mssql:
+    image: 'mcr.microsoft.com/mssql/server'
+    container_name: MSSQL
+    ports:
+      - '1433:1433'
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Password123
+    volumes:
+      - sql-server-data:/var/opt/mssql
+      - ./backups:/var/opt/mssql/_backups
+    restart: unless-stopped
+
+volumes:
+  sql-server-data:

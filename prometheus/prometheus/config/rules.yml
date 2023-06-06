@@ -1,0 +1,179 @@
+groups:
+
+- name: Alex App – Service
+  rules:
+  - alert: Alex Instance Down
+    expr: up{job="alex_app"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      context: alex-app-state
+    annotations:
+      description: "{{ $labels.instance }} недоступен более минуты."
+
+  - alert: Alex Instance Unstable State
+    expr: changes(up{job="alex_app"}[10m]) > 10
+    labels:
+      severity: critical
+      context: alex-app-state
+    annotations:
+      description: "{{ $labels.instance }} был недоступен более 5 раз за последние 10 минут."
+
+
+- name: Alex App – Message Import Job
+  rules:
+  - alert: Message Import Job – Message Header Errors
+    expr: changes(alex_app_message_import_job_message_header_errors[10m]) > 0
+    labels:
+      severity: critical
+      direction: inbound
+      context: message-import-job
+      metric: message-header-errors
+    annotations:
+      description: "Ошибка при разборе заголовка входящего сообщения (подробности в логе). Обработка следующих сообщений приостановлена."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-MessageHeaderErrors
+
+  - alert: Message Import Job – Unexpected Import Errors
+    expr: changes(alex_app_message_import_job_unexpected_import_errors[10m]) > 0
+    labels:
+      severity: critical
+      direction: inbound
+      context: message-import-job
+      metric: unexpected-import-errors
+    annotations:
+      description: "Непредвиденная ошибка при обработке входящего сообщения (подробности в логе). Обработка следующих сообщений приостановлена."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-UnexpectedImportErrors
+
+
+- name: Alex App – Message Import Service
+  rules:
+  - alert: Message Import Service – Import Errors
+    expr: changes(alex_app_message_import_service_import_errors[1m]) > 0
+    labels:
+      severity: high
+      direction: inbound
+      context: message-import-service
+      metric: import-errors
+    annotations:
+      description: "Ошибка при обработке входящего сообщения: [ {{ $labels.type }} ]. Сообщение не подлежит обработке и будет пропущено."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-ImportErrors
+
+  - alert: Message Import Service – Critical Errors
+    expr: changes(alex_app_message_import_service_critical_errors[10m]) > 0
+    labels:
+      severity: critical
+      direction: inbound
+      context: message-import-service
+      metric: critical-errors
+    annotations:
+      description: "Критическая ошибка при обработке входящего сообщения: [ {{ $labels.type }} ]. Обработка сообщения не может быть завершена."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-CriticalErrors
+
+  - alert: Message Import Service – Processors Errors
+    expr: changes(alex_app_message_import_service_processor_errors[1m]) > 0
+    labels:
+      severity: high
+      direction: inbound
+      context: message-import-service
+      metric: processor-errors
+    annotations:
+      description: "Ошибка при обработке входящего сообщения: обработчик – [ {{ $labels.processor }} ], код ошибки – [ {{ $labels.error }} ]."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-ProcessorsErrors
+
+
+- name: Alex App – Exporter Actors
+  rules:
+  - alert: Exporter Actor – Skipped Export Taks
+    expr: changes(alex_app_document_exporter_actor_skipped_export_tasks[1m]) > 0
+    labels:
+      severity: medium
+      direction: inbound
+      context: document-exporter-actor
+      metric: skipped-export-tasks
+    annotations:
+      description: "Обрабатываемый документ не будет экспортирован, задача на экспорт была выполнена ранее (подробности в логе)."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-SkippedExportTasks
+
+  - alert: Exporter Actor – Exporter Work State
+    expr: alex_app_document_exporter_actor_exporter_work_state == 0
+    for: 1m
+    labels:
+      severity: critical
+      direction: inbound
+      context: document-exporter-actor
+      metric: exporter-work-state
+    annotations:
+      description: "Экспортер [ {{ $labels.exporter }} ] прекратил работу (подробности в логе)."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-ExporterWorkState
+
+  - alert: Exporter Actor – Delayed Export Tasks
+    expr: changes(alex_app_document_exporter_actor_delayed_export_tasks[1m]) > 0
+    labels:
+      severity: critical
+      direction: inbound
+      context: document-exporter-actor
+      metric: delayed-export-tasks
+    annotations:
+      description: "Задача на экспорт документа отложена, экспортер [ {{ $labels.exporter }} ] находится в некорректном состоянии."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-DelayedExportTasks
+
+  - alert: Exporter Actor – Critical Errors
+    expr: changes(alex_app_document_exporter_actor_critical_errors[1m]) > 0
+    labels:
+      severity: critical
+      direction: inbound
+      context: document-exporter-actor
+      metric: critical-errors
+    annotations:
+      description: "Критическая ошибка при экспорте входящего документа: [ {{ $labels.type }} ]. Экспорт следующих документов приостановлен."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-CriticalErrors.1
+
+
+- name: Alex App – Message Export Job
+  rules:
+  - alert: Message Export Job – Message Header Errors
+    expr: changes(alex_app_message_export_job_message_header_errors[10m]) > 0
+    labels:
+      severity: critical
+      direction: outbound
+      context: message-export-job
+      metric: message-header-errors
+    annotations:
+      description: "Ошибка при разборе заголовка входящего сообщения (подробности в логе), запрос – [ {{ $labels.request }} ]. Обработка следующих запросов приостановлена."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-MessageHeaderErrors.1
+
+  - alert: Message Export Job – Unexpected Export Errors
+    expr: changes(alex_app_message_export_job_unexpected_export_errors[10m]) > 0
+    labels:
+      severity: critical
+      direction: outbound
+      context: message-export-job
+      metric: unexpected-export-errors
+    annotations:
+      description: "Непредвиденная ошибка при обработке входящего сообщения (подробности в логе), запрос – [ {{ $labels.request }} ]. Обработка следующих запросов приостановлена."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-UnexpectedExportErrors
+
+
+- name: Alex App – Message Exporter
+  rules:
+  - alert: Message Exporter – Export Errors
+    expr: changes(alex_app_message_exporter_export_errors[1m]) > 0
+    labels:
+      severity: high
+      direction: outbound
+      context: message-exporter
+      metric: export-errors
+    annotations:
+      description: "Ошибка при обработке запроса на отправку сообщений: запрос – [ {{ $labels.request }} ], код ошибки – [ {{ $labels.type }} ]. Запрос не подлежит обработке и будет пропущен."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-ExportErrors
+
+  - alert: Message Exporter – Critical Errors
+    expr: changes(alex_app_message_exporter_critical_errors[10m]) > 0
+    labels:
+      severity: critical
+      direction: outbound
+      context: message-exporter
+      metric: critical-errors
+    annotations:
+      description: "Критическая ошибка при обработке запроса на отправку сообщений: запрос – [ {{ $labels.request }} ], код ошибки – [ {{ $labels.type }} ]. Обработка запроса не может быть завершена."
+      confluence: https://conf.open-broker.ru/pages/viewpage.action?pageId=87396330#id-Уведомления-CriticalErrors.2

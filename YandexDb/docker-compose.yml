@@ -1,0 +1,22 @@
+# https://ydb.tech/ru/docs/getting_started/self_hosted/ydb_docker
+
+version: "3.9"
+services:
+  ydb-local:
+    image: cr.yandex/yc/yandex-docker-local-ydb:latest
+    environment:
+      - YDB_DEFAULT_LOG_LEVEL=NOTICE
+      - GRPC_TLS_PORT=2135 
+      - GRPC_PORT=2136 
+      - MON_PORT=8765 
+    ports:
+      - 2135:2135 
+      - 8765:8765 
+      - 2136:2136
+    hostname: localhost  
+    volumes:
+      - ydb-certs:/ydb_certs 
+      - ydb-data:/ydb_data
+volumes:
+  ydb-data:
+  ydb-certs:

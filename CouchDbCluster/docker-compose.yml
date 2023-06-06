@@ -1,0 +1,57 @@
+# после запуска зайти в http://localhost:5984/_utils и настроить работу в режиме кластера, ноды добавлять по имени в alias файла ниже
+version: "3.9"
+services:
+  node1:
+    image: couchdb:latest
+    environment:
+      - COUCHDB_SECRET="couchdb-cluster-123!"
+      - ERL_FLAGS=-setcookie "brumbrum"
+      - NODENAME="node1.couchdb.local"
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
+    ports:
+      - "5984:5984"
+    networks:
+      cluster:
+        aliases:
+          - node1.couchdb.local
+    volumes:
+      - ./nodes/data1:/opt/couchdb/data
+      - ./nodes/config1:/opt/couchdb/etc/local.d
+  node2:
+    image: couchdb:latest
+    environment:
+      - COUCHDB_SECRET="couchdb-cluster-123!"
+      - ERL_FLAGS=-setcookie "brumbrum"
+      - NODENAME="node2.couchdb.local"
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
+    ports:
+      - "5985:5984"
+    networks:
+      cluster:
+        aliases:
+          - node2.couchdb.local
+    volumes:
+      - ./nodes/data2:/opt/couchdb/data
+      - ./nodes/config2:/opt/couchdb/etc/local.d
+  node3:
+    image: couchdb:latest
+    environment:
+      - COUCHDB_SECRET="couchdb-cluster-123!"
+      - ERL_FLAGS=-setcookie "brumbrum"
+      - NODENAME="node3.couchdb.local"
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
+    ports:
+      - "5986:5984"
+    networks:
+      cluster:
+        aliases:
+          - node3.couchdb.local
+    volumes:
+      - ./nodes/data3:/opt/couchdb/data
+      - ./nodes/config3:/opt/couchdb/etc/local.d
+
+networks:
+  cluster:

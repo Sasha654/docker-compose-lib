@@ -1,0 +1,62 @@
+version: '3.9'
+
+networks:
+  prometheus-net:
+    driver: bridge
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.29.2
+    container_name: prometheus
+    volumes:
+      - ./prometheus/config:/etc/prometheus/
+      - ./prometheus/data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/config.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention=100h'
+      - '--web.enable-lifecycle'
+    networks:
+      - prometheus-net
+    expose:
+      - 9090
+    ports:
+      - 9090:9090
+
+  alertmanager:
+    image: prom/alertmanager:v0.23.0
+    container_name: alertmanager
+    depends_on:
+      - prometheus
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - prometheus-net
+    expose:
+      - 9093
+    ports:
+      - 9093:9093
+      
+  grafana:
+    image: grafana/grafana:8.1.1
+    container_name: grafana
+    depends_on:
+      - prometheus
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/datasources
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - prometheus-net
+    expose:
+      - 3000
+    ports:
+      - 3000:3000

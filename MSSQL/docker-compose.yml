@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: mssql
+    hostname: mssql
+    ports:
+      - 1433:1433
+    volumes:
+      - ~/apps/mongo:/data/db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=1831-Meniga
+      - TZ=Europe/Moscow
+      - MSSQL_COLLATION='Cyrillic_General_CI_AS'
+      - MSSQL_AGENT_ENABLED=true
+    volumes:
+      - mssql:/var/opt/mssql
+    mem_limit: 2G
+ 
+volumes:
+  mssql:
+    driver: local

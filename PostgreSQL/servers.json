@@ -1,0 +1,12 @@
+{
+    "Servers": {
+        "docker": {
+            "Name": "docker",
+            "Group": "Servers",
+            "Port": 5432,
+            "Username": "test",
+            "Host": "host.docker.internal",
+            "MaintenanceDB": "postgres"
+        }
+    }
+}

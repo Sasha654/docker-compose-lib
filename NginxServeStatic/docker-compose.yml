@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  nginx:
+    container_name: "nginx-serve-static"
+    image: library/nginx
+    ports:
+      - "9100:80"
+    volumes:
+      - ./html:/usr/share/nginx/html

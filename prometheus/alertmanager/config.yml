@@ -1,0 +1,72 @@
+global:
+  # The smarthost and SMTP sender used for mail notifications
+  smtp_smarthost: 'localhost:25'
+  smtp_from: 'example@open.ru'
+  #smtp_auth_username: '*****'
+  #smtp_auth_password: '*****'
+  #smtp_auth_identity: '*****'
+  smtp_require_tls: false
+
+# The directory from which notification templates are read
+templates:
+- '/etc/alertmanager/templates/*.tmpl'
+
+# Notification receivers
+receivers:
+- name: 'alex-notification'
+  email_configs:
+  - to: 'example@open.ru'
+    send_resolved: false
+- name: 'alex-state-notification'
+  email_configs:
+  - to: 'example@open.ru'
+    send_resolved: true
+
+# The root route on which each incoming alert enters
+route:
+  group_by: ['job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+  receiver: 'alex-notification'
+
+  routes:
+
+  # Alex App
+  - matchers:
+    - job="alex_app"
+    group_by: ['server', 'alertname']
+    group_wait: 10s
+    receiver: 'alex-notification'
+    routes:
+    - matchers: # Alex Instance Down
+      - context="alex-app-state"
+      group_by: ['instance', 'alertname']
+      receiver: 'alex-state-notification'
+
+    - matchers: # Message Import Service
+      - context="message-import-service"
+      group_by: ['server', 'alertname', 'type']
+      routes:
+      - matchers: # Processors Errors
+        - metric="processor-errors"
+        group_by: ['server', 'alertname', 'processor', 'error']
+
+    - matchers: # Exporter Actors
+      - context="document-exporter-actor"
+      group_by: ['server', 'alertname', 'exporter']
+      routes:
+      - matchers: # Exporter Work State
+        - metric="exporter-work-state"
+        receiver: 'alex-state-notification'
+      - matchers: # Critical Errors
+        - metric="critical-errors"
+        group_by: ['server', 'alertname', 'exporter', 'type']
+
+    - matchers: # Message Export Job
+      - context="message-export-job"
+      group_by: ['server', 'alertname', 'request']
+
+    - matchers: # Message Exporter
+      - context="message-exporter"
+      group_by: ['server', 'alertname', 'request', 'type']
