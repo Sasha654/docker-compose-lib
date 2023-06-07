@@ -4,7 +4,7 @@
             "Name": "docker",
             "Group": "Servers",
             "Port": 5432,
-            "Username": "test",
+            "Username": "postgres",
             "Host": "host.docker.internal",
             "MaintenanceDB": "postgres"
         }
