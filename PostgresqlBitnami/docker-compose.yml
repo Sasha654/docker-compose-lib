@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   postgresql:
-    image: docker.io/bitnami/postgresql:latest
+    image: docker.io/bitnami/postgresql:17.4.0
     ports:
       - '5432:5432'
     environment:
