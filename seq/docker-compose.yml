@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  seqsvc:
+    image: datalust/seq:latest
+    container_name: "seq"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 2G
+    ports:
+      - 5341:5341
+      - 9002:80
+    environment:
+      ACCEPT_EULA: 'Y'
+    restart: unless-stopped
+    volumes:
+      - ./seq_data:/data

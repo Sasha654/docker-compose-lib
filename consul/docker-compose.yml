@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  consul-server:
+    image: docker.io/bitnami/consul:1.17.3
+    container_name: "consul-srv"
+    ports:
+      - 8500:8500
+    restart: unless-stopped
+    volumes:
+      - ./consul_data:/bitnami/consul
