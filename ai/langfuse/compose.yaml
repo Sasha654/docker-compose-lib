@@ -1,0 +1,171 @@
+# Make sure to update the credential placeholders with your own secrets.
+# We mark them with # CHANGEME in the file below.
+# In addition, we recommend to restrict inbound traffic on the host to langfuse-web (port 3000) and minio (port 9090) only.
+# All other components are bound to localhost (127.0.0.1) to only accept connections from the local machine.
+# External connections from other machines will not be able to reach these services directly.
+services:
+  langfuse-worker:
+    image: docker.io/langfuse/langfuse-worker:3
+    container_name: langfuse-worker
+    restart: unless-stopped
+    depends_on: &langfuse-depends-on
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:3030:3030
+    environment: &langfuse-worker-env
+      NEXTAUTH_URL: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres # CHANGEME
+      SALT: "mysalt" # CHANGEME
+      ENCRYPTION_KEY: "129877432d4d9ee14bf4ee909510cd576e2fbe8fc469333e5d227b270f9d0545" # CHANGEME: generate via `openssl rand -hex 32`
+      TELEMETRY_ENABLED: false
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: true
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse # CHANGEME
+      CLICKHOUSE_CLUSTER_ENABLED: false
+      LANGFUSE_USE_AZURE_BLOB: false
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret # CHANGEME
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: true
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: miniosecret # CHANGEME
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://localhost:9090
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: true
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+      LANGFUSE_S3_BATCH_EXPORT_ENABLED: false
+      LANGFUSE_S3_BATCH_EXPORT_BUCKET: langfuse
+      LANGFUSE_S3_BATCH_EXPORT_PREFIX: exports/
+      LANGFUSE_S3_BATCH_EXPORT_REGION: auto
+      LANGFUSE_S3_BATCH_EXPORT_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_BATCH_EXPORT_EXTERNAL_ENDPOINT: http://localhost:9090
+      LANGFUSE_S3_BATCH_EXPORT_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY: miniosecret # CHANGEME
+      LANGFUSE_S3_BATCH_EXPORT_FORCE_PATH_STYLE: true
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_AUTH: myredissecret # CHANGEME
+      REDIS_TLS_ENABLED: false
+      REDIS_TLS_CA: /certs/ca.crt
+      REDIS_TLS_CERT: /certs/redis.crt
+      REDIS_TLS_KEY: /certs/redis.key
+
+  langfuse-web:
+    image: docker.io/langfuse/langfuse:3
+    container_name: langfuse-web
+    restart: unless-stopped
+    depends_on: *langfuse-depends-on
+    ports:
+      - 3000:3000
+    environment:
+      <<: *langfuse-worker-env
+      NEXTAUTH_SECRET: mysecret # CHANGEME
+      LANGFUSE_INIT_ORG_ID: 1
+      LANGFUSE_INIT_ORG_NAME: PT
+      LANGFUSE_INIT_PROJECT_ID: 42
+      LANGFUSE_INIT_PROJECT_NAME: POC
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-18725427-e629-4350-a84c-288ab5802b86
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-8f8500c8-d56e-4194-b025-693888845430
+      LANGFUSE_INIT_USER_EMAIL: admin@pt.com
+      LANGFUSE_INIT_USER_NAME: admin
+      LANGFUSE_INIT_USER_PASSWORD: P@ssw0rd
+
+  clickhouse:
+    image: docker.io/clickhouse/clickhouse-server
+    container_name: langfuse-clickhouse
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse # CHANGEME
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+    ports:
+      - 127.0.0.1:8123:8123
+      - 127.0.0.1:9000:9000
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 1s
+
+  minio:
+    image: docker.io/minio/minio
+    container_name: langfuse-minio
+    restart: unless-stopped
+    entrypoint: sh
+    # create the 'langfuse' bucket before starting the service
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret # CHANGEME
+    ports:
+      - 9090:9000
+      - 127.0.0.1:9091:9001
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+      start_period: 1s
+
+  redis:
+    image: docker.io/redis:7
+    container_name: langfuse-redis
+    restart: unless-stopped
+    # CHANGEME: row below to secure redis password
+    command: >
+      --requirepass myredissecret
+    ports:
+      - 127.0.0.1:6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  postgres:
+    image: docker.io/postgres:latest
+    container_name: langfuse-postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres # CHANGEME
+      POSTGRES_DB: postgres
+    ports:
+      - 0.0.0.0:5439:5432
+    volumes:
+      - langfuse_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  langfuse_postgres_data:
+    driver: local
+  langfuse_clickhouse_data:
+    driver: local
+  langfuse_clickhouse_logs:
+    driver: local
+  langfuse_minio_data:
+    driver: local
