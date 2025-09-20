@@ -7,3 +7,5 @@
 ```
 open-webui-data:/app/backend/data
 ```
+
+Настройка `Temporary Chat by Default` находится: настройки -> интерфейс -> чат -> Temporary Chat by Default
