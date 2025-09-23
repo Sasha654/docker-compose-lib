@@ -1,0 +1,1 @@
+https://www.saybackend.com/blog/05-kafka-in-docker-kraft/
