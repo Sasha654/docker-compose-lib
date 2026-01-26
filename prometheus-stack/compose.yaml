@@ -1,0 +1,76 @@
+name: prometheus-stack
+
+networks:
+  prometheus-net:
+    driver: bridge
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.1
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+    ports:
+      - 9090:9090
+    networks:
+      - prometheus-net
+    volumes:
+      - ./prometheus:/etc/prometheus/
+    environment:
+      TZ: "Europe/Moscow"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    user: root
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    networks:
+      - prometheus-net
+    environment:
+      TZ: Europe/Moscow
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: password
+
+  alertmanager:
+    image: prom/alertmanager:v0.30.1
+    container_name: alertmanager
+    restart: unless-stopped
+    user: root
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    environment:
+      TZ: "Europe/Moscow"
+    command:
+      - "--config.file=/etc/alertmanager/config.yaml"
+      - "--storage.path=/etc/alertmanager/data"
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    hostname: node-exporter
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.ignored-mount-points
+      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+    ports:
+      - 9100:9100
+    networks:
+      - prometheus-net
+    environment:
+      TZ: "Europe/Moscow"
