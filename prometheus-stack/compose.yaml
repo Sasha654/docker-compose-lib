@@ -4,6 +4,16 @@ networks:
   prometheus-net:
     driver: bridge
 
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  grafana_provisioning:
+    driver: local
+  alertmanager_data:
+    driver: local
+
 services:
   prometheus:
     image: prom/prometheus:v3.5.1
@@ -17,6 +27,7 @@ services:
       - prometheus-net
     volumes:
       - ./prometheus:/etc/prometheus/
+      - prometheus_data:/prometheus
     environment:
       TZ: "Europe/Moscow"
 
@@ -30,8 +41,8 @@ services:
     ports:
       - 3000:3000
     volumes:
-      - ./grafana:/var/lib/grafana
-      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - grafana_data:/var/lib/grafana
+      - grafana_provisioning:/etc/grafana/provisioning/
     networks:
       - prometheus-net
     environment:
@@ -48,11 +59,12 @@ services:
       - 9093:9093
     volumes:
       - ./alertmanager/:/etc/alertmanager/
+      - alertmanager_data:/alertmanager
     environment:
       TZ: "Europe/Moscow"
     command:
-      - "--config.file=/etc/alertmanager/config.yaml"
-      - "--storage.path=/etc/alertmanager/data"
+      - --config.file=/etc/alertmanager/config.yaml
+      - --storage.path=/alertmanager/data
 
   node-exporter:
     image: prom/node-exporter:latest
