@@ -6,6 +6,7 @@ services:
   #  And forward them to --remoteWrite.url
   vmagent:
     image: victoriametrics/vmagent:v1.134.0
+    container_name: vmagent
     depends_on:
       - "victoriametrics"
     ports:
@@ -21,6 +22,7 @@ services:
   # storing metrics and serve read requests.
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.134.0
+    container_name: victoriametrics
     ports:
       - 8428:8428
       - 8089:8089
@@ -41,6 +43,7 @@ services:
 
   grafana:
     image: grafana/grafana:12.2.0
+    container_name: grafana
     depends_on:
       - "victoriametrics"
     ports:
@@ -53,10 +56,14 @@ services:
       - ./config/dashboards/vmagent.json:/var/lib/grafana/dashboards/vmagent.json
       - ./config/dashboards/vmalert.json:/var/lib/grafana/dashboards/vmalert.json
     restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: password
 
   # vmalert executes alerting and recording rules
   vmalert:
     image: victoriametrics/vmalert:v1.134.0
+    container_name: vmalert
     depends_on:
       - "victoriametrics"
       - "alertmanager"
@@ -82,6 +89,7 @@ services:
   # and distributes them according to --config.file.
   alertmanager:
     image: prom/alertmanager:v0.28.1
+    container_name: alertmanager
     volumes:
       - ./config/alertmanager.yml:/config/alertmanager.yml
     command:
